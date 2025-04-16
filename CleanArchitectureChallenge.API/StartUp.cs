@@ -1,23 +1,48 @@
 using Microsoft.OpenApi.Models;
-using System.Reflection;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using CleanArchitectureChallenge.Domain.Interfaces;
 using CleanArchitectureChallenge.Infrastructure.Repositories;
 using CleanArchitectureChallenge.Application.Interfaces;
 using CleanArchitectureChallenge.Application.Services;
+using Microsoft.Extensions.Options;
 
 namespace CleanArchitectureChallenge.API;
 
 /// <summary>
 /// Configures services and the middleware pipeline for the Clean Architecture Challenge API.
 /// </summary>
-public class Startup
+public class Startup(IConfiguration configuration)
 {
+    public IConfiguration Configuration { get; } = configuration;
+
     /// <summary>
     /// Registers services into the dependency injection container.
     /// </summary>
     /// <param name="services">The service collection to configure.</param>
     public void ConfigureServices(IServiceCollection services)
     {
+        //Config JWT
+        var jwtSettings = Configuration.GetSection("JwtSettings");
+        var key = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]);
+
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = jwtSettings["Issuer"],
+                        ValidAudience = jwtSettings["Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(key)
+                    };
+                });
+        services.AddAuthorization();
+        
         // Register MVC Controllers
         services.AddControllers();
 
@@ -43,6 +68,8 @@ public class Startup
             // ✅ Enable [SwaggerOperation] attributes (requires Swashbuckle.Annotations)
             c.EnableAnnotations();
         });
+
+        //services.AddEndpointsApiExplorer();
 
         // 💉 Dependency Injection
         services.AddSingleton<IProductRepository, ProductRepository>(); // In-memory example
@@ -74,6 +101,7 @@ public class Startup
 
         app.UseRouting();
 
+        app.UseAuthentication();
         app.UseAuthorization();
 
         // 📌 Maps controller endpoints

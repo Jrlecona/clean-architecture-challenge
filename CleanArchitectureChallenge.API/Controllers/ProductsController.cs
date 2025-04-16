@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using CleanArchitectureChallenge.Application.Interfaces;
 using CleanArchitectureChallenge.Application.DTOs;
 using Swashbuckle.AspNetCore.Annotations;
@@ -10,6 +11,7 @@ namespace CleanArchitectureChallenge.API.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ProductsController : ControllerBase
     {
         private readonly IProductService _service;
